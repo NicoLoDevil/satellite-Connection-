@@ -1,0 +1,829 @@
+/* ===== GLOBAL STYLES ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "San Francisco", "Helvetica Neue", sans-serif;
+    background-color: #000;
+    color: #fff;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    background: linear-gradient(135deg, #0a0a14 0%, #1a1a2e 50%, #0a0a14 100%);
+}
+
+/* ===== CANVAS STYLING ===== */
+.earth-canvas,
+.sky-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: radial-gradient(circle at center, #0a0a14 0%, #000 100%);
+    z-index: 1;
+}
+
+.sky-canvas.hidden {
+    display: none;
+}
+
+/* Control Panels - HIDDEN */
+.control-panel,
+.top-panel,
+.left-panel,
+.right-panel,
+.panel-section,
+.header,
+.view-toggle,
+.satellite-list,
+.view-btn,
+.btn-emergency,
+.status-text {
+    display: none !important;
+}
+
+/* ===== APPLE-STYLE SATELLITE INTERFACE ===== */
+.sat-interface {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: env(safe-area-inset-top, 20px) clamp(12px, 4vw, 40px) env(safe-area-inset-bottom, 28px);
+    gap: clamp(12px, 2.5vh, 36px);
+    background: transparent;
+}
+
+/* Enable pointer events for interactive elements */
+.sat-interface * {
+    pointer-events: auto;
+}
+
+/* Status Bar */
+.sat-status-bar {
+    display: none !important; /* removed - no phone notch/status bar */
+}
+
+.sat-time { display: none !important; }
+
+/* Main Content Area */
+.sat-main-content {
+    flex: 1 1 auto;
+    width: min(1200px, 96%);
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(18px, 3.5vh, 48px);
+    padding-bottom: clamp(48px, 18vh, 260px); /* ensure main content doesn't overlap bottom card */
+    gap: clamp(12px, 3vh, 36px);
+    margin: 0 auto;
+    text-align: center;
+}
+
+/* Title Area */
+.sat-title-area {
+    text-align: center;
+    margin-top: 0;
+    animation: fadeInDown 0.8s ease-out;
+}
+
+.sat-title {
+    font-size: clamp(28px, 6vw, 64px);
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    letter-spacing: -0.6px;
+    line-height: 1.08;
+    word-break: break-word;
+}
+
+.sat-status-message {
+    font-size: clamp(13px, 2.2vw, 18px);
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    animation: pulse 2.4s ease-in-out infinite;
+    max-width: 88vw;
+    overflow-wrap: anywhere;
+}
+
+/* Satellite Icon */
+.sat-icon-container {
+    position: relative;
+    width: clamp(64px, 14vw, 160px);
+    height: clamp(64px, 14vw, 160px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sat-icon {
+    width: 100%;
+    height: 100%;
+    animation: satelliteFloat 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(0, 255, 136, 0.4));
+}
+
+.sat-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Signal Bars - Apple Style */
+.sat-signal-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.sat-signal-bars {
+    display: flex;
+    gap: clamp(6px, 1.2vw, 12px);
+    align-items: flex-end;
+    height: clamp(34px, 6vh, 70px);
+}
+
+.sat-bar {
+    width: clamp(4px, 0.6vw, 10px);
+    height: clamp(10px, 2.5vh, 36px);
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    transition: all 0.3s ease;
+}
+
+.sat-bar:nth-child(1) { animation-delay: 0s; }
+.sat-bar:nth-child(2) { animation-delay: 0.2s; }
+.sat-bar:nth-child(3) { animation-delay: 0.4s; }
+.sat-bar:nth-child(4) { animation-delay: 0.6s; }
+.sat-bar:nth-child(5) { animation-delay: 0.8s; }
+
+.sat-bar.active {
+    background: linear-gradient(180deg, #00ff88 0%, #00ccff 100%);
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
+}
+
+.sat-signal-text {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+/* Directional Arrow */
+.sat-direction-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+#sat-arrow {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: directionRotate 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 15px rgba(0, 255, 136, 0.5));
+}
+
+#sat-arrow svg {
+    width: 100%;
+    height: 100%;
+}
+
+.sat-direction-text {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+    text-align: center;
+    min-height: 24px;
+    letter-spacing: 0.3px;
+}
+
+/* Connection Info */
+.sat-info-container {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 30px;
+}
+
+.sat-info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.sat-info-label {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.sat-info-value {
+    font-size: 18px;
+    color: #00ff88;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    min-width: 80px;
+    text-align: center;
+}
+
+/* Connection Status Bubble */
+.sat-connection-status {
+    margin-top: 10px;
+    min-height: 30px;
+}
+
+.sat-status-bubble {
+    background: rgba(0, 255, 136, 0.15);
+    border: 1.5px solid rgba(0, 255, 136, 0.6);
+    border-radius: 20px;
+    padding: 12px 24px;
+    backdrop-filter: blur(10px);
+    animation: statusGlow 2s ease-in-out infinite;
+}
+
+.sat-status-bubble p {
+    font-size: 15px;
+    color: #00ff88;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: 0.3px;
+}
+
+/* Bottom Controls */
+.sat-bottom-controls {
+    width: 100%;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 60;
+}
+
+.sat-activate-btn {
+    width: min(420px, 92%);
+    height: clamp(48px, 6vh, 64px);
+    background: linear-gradient(135deg, #ff3b30 0%, #ff6b5b 100%);
+    color: #fff;
+    font-size: clamp(15px, 2.2vw, 20px);
+    font-weight: 700;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.22s ease;
+    box-shadow: 0 10px 30px rgba(255, 59, 48, 0.28);
+    backdrop-filter: blur(8px);
+    animation: buttonPulse 2.2s ease-in-out infinite;
+}
+
+.sat-activate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px rgba(255, 59, 48, 0.5);
+}
+
+.sat-activate-btn:active {
+    transform: translateY(0);
+}
+
+.sat-close-btn {
+    width: 100%;
+    max-width: 280px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 600;
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.sat-close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+/* ===== ANIMATIONS ===== */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== STARS & HORIZON GLOW ===== */
+.stars {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(2px 2px at 10% 20%, rgba(255,255,255,0.06), transparent),
+                      radial-gradient(1.3px 1.3px at 70% 40%, rgba(255,255,255,0.04), transparent),
+                      radial-gradient(1.6px 1.6px at 40% 80%, rgba(255,255,255,0.05), transparent);
+    background-size: 100% 100%;
+    z-index: 2;
+    opacity: 0.9;
+    pointer-events: none;
+}
+
+.horizon-glow {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 140%;
+    height: 40vh;
+    background: radial-gradient(ellipse at center bottom, rgba(10,170,120,0.12) 0%, rgba(0,0,0,0) 55%);
+    z-index: 3;
+    pointer-events: none;
+}
+
+/* Gyro sensitivity slider styling */
+.gyro-sensitivity-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    margin-top: 6px;
+}
+
+.gyro-sensitivity {
+    width: min(420px, 92%);
+    max-width: 320px;
+    accent-color: #00ff88;
+}
+
+/* Bottom card that mirrors Apple-style control sheet */
+.bottom-card {
+    position: fixed;
+    left: 50%;
+    bottom: clamp(14px, 4vh, 24px);
+    transform: translateX(-50%);
+    width: min(920px, 96%);
+    max-width: 920px;
+    z-index: 55;
+    background: linear-gradient(180deg, rgba(20,20,28,0.88), rgba(12,12,16,0.72));
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(14px);
+    border-radius: 18px;
+    padding: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+}
+
+/* Connect Modal styles (centered, frosted) */
+.connect-modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.55));
+    padding: 20px;
+}
+
+.connect-modal-content {
+    width: min(560px, 94%);
+    background: linear-gradient(180deg, rgba(30,30,36,0.98), rgba(18,18,22,0.96));
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    color: #fff;
+    text-align: left;
+}
+
+.connect-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.connect-desc {
+    font-size: 14px;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 18px;
+}
+
+.connect-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.connect-btn {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.connect-btn.primary {
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    color: #fff;
+}
+
+.connect-btn.secondary {
+    background: rgba(255,255,255,0.03);
+    color: #fff;
+}
+
+/* slide down animation for modal dismissal */
+.slide-down {
+    animation: slideDownOut 420ms ease forwards;
+}
+
+@keyframes slideDownOut {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(30vh); opacity: 0; }
+}
+
+.bottom-card .card-handle {
+    width: 48px;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    margin: 6px auto 10px;
+    border-radius: 3px;
+}
+
+.card-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.card-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.95);
+}
+
+.card-item .item-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.card-item .item-title {
+    font-weight: 700;
+}
+
+.card-item .item-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+}
+
+/* ensure interactive elements are always on top and clickable */
+.sat-interface, .bottom-card, .sat-bottom-controls, .sat-activate-btn, .sat-close-btn {
+    -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+@keyframes satelliteFloat {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+@keyframes signalPulse {
+    0%, 100% {
+        opacity: 0.4;
+        height: 15px;
+    }
+    50% {
+        opacity: 1;
+        height: 35px;
+    }
+}
+
+@keyframes directionRotate {
+    0% {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: rotate(10deg) scale(1.05);
+    }
+    100% {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes statusGlow {
+    0%, 100% {
+        box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(0, 255, 136, 0.6);
+    }
+}
+
+@keyframes buttonPulse {
+    0%, 100% {
+        box-shadow: 0 10px 30px rgba(255, 59, 48, 0.3);
+    }
+    50% {
+        box-shadow: 0 10px 40px rgba(255, 59, 48, 0.5);
+    }
+}
+
+/* ===== MODAL STYLING ===== */
+.modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: rgba(20, 20, 30, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 300px;
+    width: 90%;
+    backdrop-filter: blur(20px);
+    animation: slideUp 0.4s ease-out;
+}
+
+.modal-content h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #fff;
+}
+
+.form-group {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.3px;
+}
+
+.form-group input {
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 16px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(0, 255, 136, 0.6);
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+    flex: 1;
+    backdrop-filter: blur(10px);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #00ff88 0%, #00cc88 100%);
+    color: #000;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 255, 136, 0.3);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 600px) {
+    .sat-title {
+        font-size: 44px;
+    }
+
+    .sat-status-message {
+        font-size: 15px;
+    }
+
+    .sat-main-content {
+        padding: 20px 15px;
+        gap: 20px;
+    }
+
+    .sat-icon-container {
+        width: 90px;
+        height: 90px;
+    }
+
+    #sat-arrow {
+        width: 60px;
+        height: 60px;
+    }
+
+    .sat-activate-btn,
+    .sat-close-btn {
+        max-width: 100%;
+        height: 50px;
+        font-size: 16px;
+    }
+
+    .sat-info-container {
+        gap: 30px;
+    }
+
+    .sat-status-bar {
+        height: 44px;
+    }
+}
+
+@media (max-height: 800px) {
+    .sat-main-content {
+        gap: 15px;
+        padding: 20px;
+    }
+
+    .sat-title {
+        font-size: 40px;
+    }
+
+    .sat-icon-container {
+        width: 80px;
+        height: 80px;
+    }
+
+    #sat-arrow {
+        width: 50px;
+        height: 50px;
+    }
+
+    .sat-info-container {
+        margin-top: 15px;
+        gap: 25px;
+    }
+}
+
+/* ===== LANDSCAPE MODE ===== */
+@media (orientation: landscape) {
+    .sat-main-content {
+        padding: 15px 20px;
+        gap: 15px;
+    }
+
+    .sat-title-area {
+        margin-top: -20px;
+    }
+
+    .sat-icon-container {
+        width: 70px;
+        height: 70px;
+    }
+
+    #sat-arrow {
+        width: 50px;
+        height: 50px;
+    }
+
+    .sat-title {
+        font-size: 36px;
+        margin-bottom: 8px;
+    }
+
+    .sat-status-message {
+        font-size: 14px;
+    }
+
+    .sat-info-item {
+        gap: 4px;
+    }
+
+    .sat-info-value {
+        font-size: 16px;
+    }
+
+    .sat-bottom-controls {
+        padding: 15px 20px;
+    }
+}
+
+/* ===== UTILITY CLASSES ===== */
+.hidden {
+    display: none !important;
+}
+
+.success {
+    color: #00ff00;
+}
+
+.warning {
+    color: #ffff00;
+}
+
+.error {
+    color: #ff4444;
+}
+
+.info {
+    color: #0088ff;
+}
+
+/* ===== END OF APPLE-STYLE DESIGN ===== */

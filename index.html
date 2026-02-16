@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satellite Communication Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Background Canvas -->
+        <canvas id="earthCanvas" class="earth-canvas"></canvas>
+        <canvas id="skyCanvas" class="sky-canvas hidden"></canvas>
+
+        <!-- ===== IMMERSIVE SATELLITE INTERFACE (FULL-SCREEN) ===== -->
+        <div class="stars" aria-hidden="true"></div>
+        <div class="horizon-glow" aria-hidden="true"></div>
+        <div class="sat-interface">
+
+            <!-- Main content area - centered -->
+            <div class="sat-main-content">
+                <!-- Title/Status Text -->
+                <div class="sat-title-area">
+                    <h1 id="sat-main-title" class="sat-title">Searching for Satellite</h1>
+                    <p id="sat-status-message" class="sat-status-message">Move device to align with satellite</p>
+                </div>
+
+                <!-- Animated Satellite Icon -->
+                <div class="sat-icon-container">
+                    <div class="sat-icon">
+                        <svg viewBox="0 0 100 100" width="80" height="80">
+                            <defs>
+                                <linearGradient id="satGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#00ff88;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#00ccff;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <!-- Satellite body -->
+                            <circle cx="50" cy="50" r="12" fill="url(#satGradient)" />
+                            <!-- Solar panels -->
+                            <rect x="30" y="45" width="15" height="10" fill="url(#satGradient)" opacity="0.8" />
+                            <rect x="55" y="45" width="15" height="10" fill="url(#satGradient)" opacity="0.8" />
+                            <!-- Antenna -->
+                            <line x1="50" y1="38" x2="50" y2="20" stroke="url(#satGradient)" stroke-width="2" />
+                            <circle cx="50" cy="18" r="3" fill="url(#satGradient)" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Signal Strength Indicator -->
+                <div class="sat-signal-container">
+                    <div id="signal-strength" class="sat-signal-bars">
+                        <div class="sat-bar"></div>
+                        <div class="sat-bar"></div>
+                        <div class="sat-bar"></div>
+                        <div class="sat-bar"></div>
+                        <div class="sat-bar"></div>
+                    </div>
+                    <p id="signal-text" class="sat-signal-text">No Signal</p>
+                </div>
+
+                <!-- Directional Arrow -->
+                <div class="sat-direction-container">
+                    <div id="sat-arrow" class="sat-arrow">
+                        <svg viewBox="0 0 100 100" width="60" height="60">
+                            <defs>
+                                <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#00ff88;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#00ccff;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <polygon points="50,10 85,80 50,65 15,80" fill="url(#arrowGradient)" />
+                        </svg>
+                    </div>
+                    <p id="target-direction" class="sat-direction-text">Point your device</p>
+                </div>
+
+                <!-- Connection Info -->
+                <div class="sat-info-container">
+                    <div class="sat-info-item">
+                        <span class="sat-info-label">Satellite</span>
+                        <span id="sat-name" class="sat-info-value">Searching…</span>
+                    </div>
+                    <div class="sat-info-item">
+                        <span class="sat-info-label">Distance</span>
+                        <span id="sat-distance" class="sat-info-value">--</span>
+                    </div>
+                    <div class="sat-info-item">
+                        <span class="sat-info-label">Elevation</span>
+                        <span id="sat-elevation" class="sat-info-value">--°</span>
+                    </div>
+                </div>
+
+                <!-- Connection Status -->
+                <div class="sat-connection-status">
+                    <div id="emergency-status" class="sat-status-bubble" style="display: none;">
+                        <p id="emergency-message">Connecting…</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Card (frosted control sheet) -->
+            <div class="bottom-card" role="dialog" aria-label="Connection controls" style="display:none;">
+                <div class="card-handle" aria-hidden="true"></div>
+                <div class="card-items">
+                    <div class="card-item">
+                        <div class="item-left">
+                            <div class="item-title">Satellite Connection Demo</div>
+                            <div class="item-sub">Move device to align. Best outdoors.</div>
+                        </div>
+                        <div class="item-right">
+                            <button id="toggle-emergency-close-btn" class="sat-close-btn" style="display: none;">Cancel</button>
+                        </div>
+                    </div>
+
+                    <div class="card-item">
+                        <div class="item-left">
+                            <div class="item-title">Find My</div>
+                            <div class="item-sub">Update shared location</div>
+                        </div>
+                        <div class="item-right">›</div>
+                    </div>
+
+                    <div class="card-item">
+                        <div class="item-left">
+                            <div class="item-title">Roadside Assistance</div>
+                            <div class="item-sub">Request help for your vehicle</div>
+                        </div>
+                        <div class="item-right">›</div>
+                    </div>
+
+                    <div class="card-item">
+                        <div class="item-left">
+                            <div class="item-title">Emergency SOS</div>
+                            <div class="item-sub">Contact emergency services</div>
+                        </div>
+                        <div class="item-right">
+                            <button id="emergency-btn" class="sat-activate-btn">ACTIVATE SOS</button>
+                        </div>
+                    </div>
+
+                    <div style="display:none;">
+                        <!-- Hidden emergency status for reference -->
+                        <div id="device-warnings"></div>
+                        <div id="direction-guidance"></div>
+                        <div id="target-elevation"></div>
+                        <div id="device-current"></div>
+                    </div>
+                </div>
+                <!-- Sensitivity slider tucked below card items -->
+                <div style="display:flex;justify-content:center;margin-top:10px;">
+                    <label for="gyro-sensitivity" class="gyro-sensitivity-label" style="margin-right:10px;">Sensitivity</label>
+                    <input id="gyro-sensitivity" class="gyro-sensitivity" type="range" min="0.2" max="3" step="0.1" value="1" aria-label="Gyroscope sensitivity">
+                </div>
+            </div>
+
+            <!-- Connect Modal (initial state like right image) -->
+            <div id="connect-modal" class="connect-modal" role="dialog" aria-modal="true">
+                <div class="connect-modal-content">
+                    <h3 class="connect-title">Satellite Connection Demo</h3>
+                    <p class="connect-desc">To try connecting to a satellite, make sure you're outside. You can use the satellite connection when Wi‑Fi and cellular aren't available.</p>
+
+                    <div class="connect-actions">
+                        <button id="connect-start-btn" class="connect-btn primary">Try Connecting to Satellite</button>
+                        <button id="connect-sos-btn" class="connect-btn secondary">Try Emergency SOS</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hidden location info -->
+            <div style="display: none;">
+                <span id="lat-value">--</span>
+                <span id="lon-value">--</span>
+                <span id="alt-value">0</span>
+                <span id="current-date">--/--/----</span>
+                <div id="satellite-list"></div>
+                <div id="active-satellite-info"></div>
+                <div id="location-info"></div>
+                <div id="time-info"></div>
+                <button id="manual-location-btn" style="display: none;"></button>
+                <button id="earth-view-btn" style="display: none;"></button>
+                <button id="sky-view-btn" style="display: none;"></button>
+                <button id="toggle-animation-btn" style="display: none;"></button>
+                <p id="fps-counter" style="display: none;"></p>
+                <p id="zoom-level" style="display: none;"></p>
+                <p id="status-text" style="display: none;"></p>
+                <p id="sat-azimuth" style="display: none;"></p>
+            </div>
+        </div>
+
+        <!-- Modal for Manual Location -->
+        <div id="location-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>Enter Your Location</h2>
+                <div class="form-group">
+                    <label for="manual-lat">Latitude (-90 to 90):</label>
+                    <input type="number" id="manual-lat" min="-90" max="90" step="0.0001" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="manual-lon">Longitude (-180 to 180):</label>
+                    <input type="number" id="manual-lon" min="-180" max="180" step="0.0001" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="manual-alt">Altitude (meters):</label>
+                    <input type="number" id="manual-alt" min="0" step="1" value="0">
+                </div>
+                <div class="modal-buttons">
+                    <button id="confirm-location-btn" class="btn btn-primary">Confirm</button>
+                    <button id="cancel-location-btn" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Satellite.js library for accurate SGP4 propagation -->
+    <script src="https://cdn.jsdelivr.net/npm/satellite.js@4.1.4/dist/satellite.min.js"></script>
+    
+    <!-- Our custom scripts -->
+    <script src="orbitalEngine.js"></script>
+    <script src="satelliteTracker.js"></script>
+    <script src="skyView.js"></script>
+    <script src="gestureHandler.js"></script>
+    <script src="deviceCheck.js"></script>
+    <script src="uiController.js"></script>
+
+    <script>
+        // Main Application Class
+        class SatelliteCommunicationApp {
+            constructor() {
+                this.orbitalEngine = null;
+                this.satelliteTracker = null;
+                this.uiController = null;
+                this.skyView = null;
+                this.gestureHandler = null;
+                this.deviceCheck = null;
+                this.canvas = document.getElementById('earthCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.skyCanvas = document.getElementById('skyCanvas');
+                this.isRunning = true;
+                this.frameCount = 0;
+                this.lastFpsTime = Date.now();
+                this.currentView = 'earth'; // 'earth' or 'sky'
+                // Tile map cache and settings
+                this.tileCache = new Map();
+                this.tileZoom = 6; // suitable overview for a state-sized view
+                this.mapCenter = { lat: 40.0, lon: -82.9 }; // default: Ohio (Columbus area)
+                this.tileNeedsRedraw = true;
+
+                // Audio (click) - will be loaded during initialize
+                this.audioContext = null;
+                this.clickBuffer = null;
+            }
+
+            async initialize() {
+                try {
+                    // Create initialization timeout (30 seconds max)
+                    const initTimeout = new Promise((_, reject) => {
+                        setTimeout(() => {
+                            reject(new Error('Initialization timeout - app took too long to load'));
+                        }, 30000);
+                    });
+
+                    // Main initialization logic
+                    const initPromise = (async () => {
+                        // Setup canvas
+                        this.resizeCanvas();
+                        window.addEventListener('resize', () => this.resizeCanvas());
+
+                        // Initialize device checks
+                        this.deviceCheck = new DeviceCheck();
+                        
+                        // Initialize gesture handler (pinch zoom, orientation)
+                        this.gestureHandler = new GestureHandler(this.canvas, this);
+
+                        // Initialize components
+                        this.orbitalEngine = new OrbitalEngine();
+                        this.satelliteTracker = new SatelliteTracker();
+                        this.skyView = new SkyView('skyCanvas');
+                        this.uiController = new UIController(this);
+
+                        // Display device warnings
+                        this.displayDeviceWarnings();
+
+                        // Setup view toggle buttons
+                        document.getElementById('earth-view-btn').addEventListener('click', () => {
+                            this.switchView('earth');
+                        });
+                        document.getElementById('sky-view-btn').addEventListener('click', () => {
+                            this.switchView('sky');
+                        });
+
+                        // Load location
+                        await this.orbitalEngine.getLocation();
+
+                        // Load satellite data
+                        await this.satelliteTracker.loadTLEData();
+
+                        // Preload click sound (non-blocking)
+                        this.loadClickSound('AppleOwned/(AppleOwned)Success_Sound_IOS18.webm');
+
+                        // Start animation loop
+                        this.animate();
+                    })();
+
+                    // Race between init and timeout
+                    await Promise.race([initPromise, initTimeout]);
+
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    this.updateStatus('Error: ' + error.message);
+                    
+                    // Try to start with minimal setup if init fails
+                    try {
+                        if (!this.uiController) this.uiController = new UIController(this);
+                        if (!this.orbitalEngine) this.orbitalEngine = new OrbitalEngine();
+                        if (!this.satelliteTracker) this.satelliteTracker = new SatelliteTracker();
+                        if (!this.skyView) this.skyView = new SkyView('skyCanvas');
+                        this.animate();
+                    } catch (fallbackError) {
+                        console.error('Fallback initialization also failed:', fallbackError);
+                    }
+                }
+            }
+
+            /**
+             * Display device capability warnings
+             */
+            displayDeviceWarnings() {
+                const warnings = this.deviceCheck.getWarnings();
+                const summary = this.deviceCheck.getSummary();
+                const warningsPanel = document.getElementById('device-warnings');
+                
+                if (warnings.length > 0) {
+                    console.warn('Device Warnings:', warnings);
+                    this.deviceCheck.displayWarnings(warningsPanel);
+                    warningsPanel.style.display = 'block';
+                }
+            }
+
+            resizeCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.skyCanvas.width = window.innerWidth;
+                this.skyCanvas.height = window.innerHeight;
+                if (this.skyView) {
+                    this.skyView.resize(this.skyCanvas.width, this.skyCanvas.height);
+                }
+            }
+
+            switchView(view) {
+                this.currentView = view;
+                
+                const earthBtn = document.getElementById('earth-view-btn');
+                const skyBtn = document.getElementById('sky-view-btn');
+                const earthCanvas = document.getElementById('earthCanvas');
+                const skyCanvas = document.getElementById('skyCanvas');
+
+                if (view === 'earth') {
+                    earthBtn.classList.add('active');
+                    skyBtn.classList.remove('active');
+                    earthCanvas.classList.remove('hidden');
+                    skyCanvas.classList.add('hidden');
+                } else {
+                    earthBtn.classList.remove('active');
+                    skyBtn.classList.add('active');
+                    earthCanvas.classList.add('hidden');
+                    skyCanvas.classList.remove('hidden');
+                }
+            }
+
+            updateStatus(message) {
+                document.getElementById('status-text').textContent = message;
+            }
+
+            animate() {
+                if (!this.isRunning) {
+                    requestAnimationFrame(() => this.animate());
+                    return;
+                }
+
+                const now = new Date();
+
+                // Update satellite positions
+                this.satelliteTracker.updateSatellitePositions(
+                    this.orbitalEngine.userLocation,
+                    now
+                );
+
+                // Render appropriate view
+                if (this.currentView === 'earth') {
+                    // Clear canvas
+                    this.ctx.fillStyle = '#0a0e27';
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                    // Draw Earth view
+                    this.drawEarth();
+                    this.drawSatellites();
+                } else {
+                    // Render sky view
+                    this.skyView.render(this.satelliteTracker.satellites);
+                }
+
+                // Update UI
+                this.uiController.update(
+                    this.orbitalEngine.userLocation,
+                    this.satelliteTracker.satellites,
+                    now
+                );
+
+                // Update gesture smoothing (mouse fallback)
+                if (this.gestureHandler && typeof this.gestureHandler.updateControlSmoothing === 'function') {
+                    this.gestureHandler.updateControlSmoothing();
+                }
+
+                // Update map center from user location when available (once)
+                if (this.orbitalEngine && this.orbitalEngine.userLocation) {
+                    const loc = this.orbitalEngine.userLocation;
+                    // small tolerance check
+                    if (Math.abs((this.mapCenter.lat || 0) - loc.latitude) > 0.001 || Math.abs((this.mapCenter.lon || 0) - loc.longitude) > 0.001) {
+                        this.mapCenter.lat = loc.latitude;
+                        this.mapCenter.lon = loc.longitude;
+                        this.tileNeedsRedraw = true;
+                    }
+                }
+
+                // Update FPS
+                this.frameCount++;
+                const currentTime = Date.now();
+                if (currentTime - this.lastFpsTime >= 1000) {
+                    const fps = this.frameCount;
+                    document.getElementById('fps-counter').textContent = `FPS: ${fps}`;
+                    this.frameCount = 0;
+                    this.lastFpsTime = currentTime;
+                }
+
+                requestAnimationFrame(() => this.animate());
+            }
+
+            drawEarth() {
+                // Tile-based OpenStreetMap rendering (Web Mercator)
+                const ctx = this.ctx;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                const centerX = w / 2;
+                const centerY = h / 2;
+
+                // Determine center lat/lon (use this.mapCenter)
+                const centerLat = (this.mapCenter && this.mapCenter.lat) || 40.0;
+                const centerLon = (this.mapCenter && this.mapCenter.lon) || -82.9;
+                const z = this.tileZoom;
+                const tileSize = 256;
+
+                // Helpers
+                const lonToX = (lon) => (lon + 180) / 360;
+                const latToY = (lat) => {
+                    const rad = lat * Math.PI / 180;
+                    return (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2;
+                };
+
+                const worldSize = tileSize * Math.pow(2, z);
+                const centerWorldX = lonToX(centerLon) * worldSize;
+                const centerWorldY = latToY(centerLat) * worldSize;
+
+                // Determine visible tile range
+                const halfW = Math.ceil(w / 2) + tileSize;
+                const halfH = Math.ceil(h / 2) + tileSize;
+
+                const minWorldX = centerWorldX - halfW;
+                const maxWorldX = centerWorldX + halfW;
+                const minWorldY = centerWorldY - halfH;
+                const maxWorldY = centerWorldY + halfH;
+
+                const minTileX = Math.floor(minWorldX / tileSize);
+                const maxTileX = Math.floor(maxWorldX / tileSize);
+                const minTileY = Math.floor(minWorldY / tileSize);
+                const maxTileY = Math.floor(maxWorldY / tileSize);
+
+                // Fill background (space gradient)
+                ctx.fillStyle = 'radial-gradient(circle at 50% 30%, #0a1330, #000)';
+                ctx.fillStyle = '#021024';
+                ctx.fillRect(0, 0, w, h);
+
+                // Draw tiles
+                for (let tx = minTileX; tx <= maxTileX; tx++) {
+                    for (let ty = minTileY; ty <= maxTileY; ty++) {
+                        const wrappedX = ((tx % Math.pow(2, z)) + Math.pow(2, z)) % Math.pow(2, z);
+                        if (ty < 0 || ty >= Math.pow(2, z)) continue; // outside
+
+                        const key = `${z}/${wrappedX}/${ty}`;
+                        const img = this.tileCache.get(key);
+                        const tileWorldX = tx * tileSize;
+                        const tileWorldY = ty * tileSize;
+                        const dx = Math.round(centerX + (tileWorldX - centerWorldX));
+                        const dy = Math.round(centerY + (tileWorldY - centerWorldY));
+
+                        if (img && img.complete) {
+                            try {
+                                ctx.drawImage(img, dx, dy, tileSize, tileSize);
+                            } catch (e) {
+                                // ignore drawing errors
+                            }
+                        } else {
+                            // start loading if not already
+                            if (!this.tileCache.has(key)) {
+                                const url = `https://tile.openstreetmap.org/${z}/${wrappedX}/${ty}.png`;
+                                const image = new Image();
+                                image.crossOrigin = 'anonymous';
+                                image.src = url;
+                                image.onload = () => { this.tileNeedsRedraw = true; };
+                                this.tileCache.set(key, image);
+                            }
+                            // draw placeholder
+                            ctx.fillStyle = '#0b1b2b';
+                            ctx.fillRect(dx, dy, tileSize, tileSize);
+                        }
+                    }
+                }
+
+                // Small horizon glow overlay
+                ctx.beginPath();
+                const grd = ctx.createLinearGradient(0, h * 0.6, 0, h);
+                grd.addColorStop(0, 'rgba(10,170,120,0.06)');
+                grd.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = grd;
+                ctx.fillRect(0, h * 0.55, w, h * 0.45);
+
+                // Draw user marker using Web Mercator mapping
+                if (this.orbitalEngine && this.orbitalEngine.userLocation) {
+                    const uLat = this.orbitalEngine.userLocation.latitude;
+                    const uLon = this.orbitalEngine.userLocation.longitude;
+                    const userWorldX = lonToX(uLon) * worldSize;
+                    const userWorldY = latToY(uLat) * worldSize;
+                    const ux = centerX + (userWorldX - centerWorldX);
+                    const uy = centerY + (userWorldY - centerWorldY);
+
+                    ctx.fillStyle = '#ffff66';
+                    ctx.beginPath();
+                    ctx.arc(ux, uy, 8, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = 'rgba(255,255,102,0.6)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(ux, uy, 20, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+
+            drawSatellites() {
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                const centerX = w / 2;
+                const centerY = h / 2;
+                const z = this.tileZoom;
+                const tileSize = 256;
+                const worldSize = tileSize * Math.pow(2, z);
+
+                const lonToX = (lon) => (lon + 180) / 360;
+                const latToY = (lat) => {
+                    const rad = lat * Math.PI / 180;
+                    return (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2;
+                };
+
+                const centerLat = (this.mapCenter && this.mapCenter.lat) || 40.0;
+                const centerLon = (this.mapCenter && this.mapCenter.lon) || -82.9;
+                const centerWorldX = lonToX(centerLon) * worldSize;
+                const centerWorldY = latToY(centerLat) * worldSize;
+
+                for (const sat of this.satelliteTracker.satellites) {
+                    if (!sat.position || !sat.visible) continue;
+
+                    // Convert lat/lon to canvas coordinates using Web Mercator
+                    const satWorldX = lonToX(sat.position.longitude) * worldSize;
+                    const satWorldY = latToY(sat.position.latitude) * worldSize;
+                    const x = centerX + (satWorldX - centerWorldX);
+                    const y = centerY + (satWorldY - centerWorldY);
+
+                    // Determine color based on visibility and signal strength
+                    let color = '#ff4444'; // Red = not visible
+                    if (sat.visible) {
+                        if (sat.isActive) {
+                            color = '#00ff00'; // Green = active
+                        } else if (sat.signalStrength > 50) {
+                            color = '#0088ff'; // Blue = strong signal
+                        } else {
+                            color = '#ffff00'; // Yellow = weak signal
+                        }
+                    }
+
+                    // Draw satellite
+                    this.ctx.fillStyle = color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, 6, 0, Math.PI * 2);
+                    this.ctx.fill();
+
+                    // Draw label for active satellites
+                    if (sat.visible) {
+                        this.ctx.fillStyle = color;
+                        this.ctx.font = '12px sans-serif';
+                        this.ctx.fillText(sat.name.substring(0, 10), x + 10, y - 5);
+                    }
+                }
+            }
+
+            toggleAnimation() {
+                this.isRunning = !this.isRunning;
+                document.getElementById('toggle-animation-btn').textContent = 
+                    this.isRunning ? 'Pause' : 'Resume';
+            }
+        }
+
+        /**
+         * Load click sound into AudioContext buffer for low-latency playback
+         */
+        async loadClickSound(url) {
+            try {
+                if (!window.AudioContext && !window.webkitAudioContext) return;
+                this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)();
+                const resp = await fetch(url);
+                const arrayBuffer = await resp.arrayBuffer();
+                this.clickBuffer = await this.audioContext.decodeAudioData(arrayBuffer.slice(0));
+            } catch (e) {
+                console.warn('Click sound load failed:', e);
+                this.clickBuffer = null;
+            }
+        }
+
+        /**
+         * Play the preloaded click sound (falls back to HTMLAudioElement)
+         */
+        playClickSound() {
+            if (this.audioContext && this.clickBuffer) {
+                try {
+                    const src = this.audioContext.createBufferSource();
+                    src.buffer = this.clickBuffer;
+                    src.connect(this.audioContext.destination);
+                    src.start(0);
+                } catch (e) {
+                    console.warn('AudioContext play error:', e);
+                }
+                return;
+            }
+
+            // fallback
+            try {
+                const audio = new Audio('AppleOwned/(AppleOwned)Success_Sound_IOS18.webm');
+                audio.preload = 'auto';
+                audio.play().catch(() => {});
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        // Expose global app reference for UI interactions
+        window.app = null;
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.app = new SatelliteCommunicationApp();
+            window.app.initialize();
+            // Play click sound for official buttons
+            document.addEventListener('click', (e) => {
+                const target = e.target;
+                if (!target) return;
+
+                // official interactive elements: buttons and modal actions
+                if (target.closest && (target.closest('button') || target.classList.contains('connect-btn') || target.classList.contains('sat-activate-btn') || target.classList.contains('sat-close-btn'))) {
+                    // ensure audio context resume on first user interaction
+                    if (window.app && window.app.audioContext && window.app.audioContext.state === 'suspended') {
+                        window.app.audioContext.resume().catch(() => {});
+                    }
+                    if (window.app) window.app.playClickSound();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
